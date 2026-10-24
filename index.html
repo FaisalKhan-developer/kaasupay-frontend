@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KaasuPay | Digital Wallet</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" aria-label="KaasuPay home">
+        <span class="brand-icon">₹</span>
+        <span>Kaasu<span class="brand-light">Pay</span></span>
+      </a>
+      <div class="sidebar-label">WORKSPACE</div>
+      <nav class="nav-list">
+        <button class="nav-item active" data-view="dashboard"><span>▦</span> Dashboard</button>
+        <button class="nav-item" data-view="transfer"><span>↗</span> Send money</button>
+        <button class="nav-item" data-view="add-money"><span>＋</span> Add money</button>
+        <button class="nav-item" data-view="bank"><span>▤</span> Bank accounts</button>
+        <button class="nav-item" data-view="withdraw"><span>↙</span> Withdraw</button>
+        <button class="nav-item" data-view="transactions"><span>⇄</span> Transactions</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="secure-card"><span class="secure-icon">✓</span><div><b>Your money, your control</b><small>Keep your account details safe.</small></div></div>
+        <button class="nav-item admin-link" data-view="admin"><span>⚙</span> Admin tools</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="mobile-brand"><span class="brand-icon">₹</span> KaasuPay</div>
+        <div class="page-heading"><span class="eyebrow">YOUR MONEY, SIMPLIFIED</span><h1 id="pageTitle">Dashboard</h1></div>
+        <div class="top-actions">
+          <span class="connection-pill"><span class="status-dot"></span><span id="connectionText">API not checked</span></span>
+          <button class="btn secondary" id="logoutBtn" type="button">↪ Log out</button>
+          <button class="avatar" id="profileAvatar" title="Profile">U</button>
+        </div>
+      </header>
+
+      <div id="notice" class="notice hidden" role="status"></div>
+
+      <section id="authPanel" class="auth-panel">
+        <div class="auth-copy">
+          <span class="eyebrow">WELCOME TO KAASUPAY</span>
+          <h2>Money management,<br><span>made simple.</span></h2>
+          <p>Sign in to manage your wallet, send money, add funds, and track your transactions in one place.</p>
+          <div class="auth-points"><span>✓ Wallet overview</span><span>✓ Quick transfers</span><span>✓ Clear transaction history</span></div>
+        </div>
+        <div class="auth-card">
+          <div class="auth-tabs"><button class="auth-tab active" data-auth="login">Sign in</button><button class="auth-tab" data-auth="signup">Create account</button></div>
+          <form id="loginForm" class="form-stack">
+            <h3>Welcome back</h3><p class="muted">Enter your account details to continue.</p>
+            <label>Email / username<input name="username" type="email" placeholder="you@example.com" required autocomplete="username"></label>
+            <label>Password<input name="password" type="password" placeholder="Your password" required autocomplete="current-password"></label>
+            <button class="btn primary full" type="submit">Sign in <span>→</span></button>
+          </form>
+          <form id="signupForm" class="form-stack hidden">
+            <h3>Create your account</h3><p class="muted">It only takes a minute to get started.</p>
+            <div class="two-col"><label>First name<input name="firstName" required placeholder="First name"></label><label>Last name<input name="lastName" required placeholder="Last name"></label></div>
+            <label>Email<input name="username" type="email" required placeholder="you@example.com" autocomplete="username"></label>
+            <label>Password<input name="password" type="password" required minlength="8" placeholder="At least 8 characters" autocomplete="new-password"></label>
+            <button class="btn primary full" type="submit">Create account <span>→</span></button>
+          </form>
+          <div class="auth-foot">Protected account access · Never share your password or OTP.</div>
+        </div>
+      </section>
+
+      <div id="workspace" class="hidden">
+        <section class="view active" id="view-dashboard">
+          <div class="welcome-row"><div><p class="muted no-margin">Here's your wallet at a glance</p><h2>Welcome, <span id="welcomeName">there</span> 👋</h2></div><button class="btn secondary" id="refreshBtn">↻ Refresh</button></div>
+          <div class="summary-grid">
+            <article class="balance-card"><div class="card-top"><span>Available wallet balance</span><span class="balance-symbol">₹</span></div><div class="balance-amount" id="walletBalance">₹ —</div><div class="balance-bottom"><span><span class="status-dot light"></span> Wallet overview</span><span class="balance-note">Amounts shown in INR</span></div></article>
+            <article class="stat-card"><div class="stat-icon purple">⇄</div><p>Total transactions loaded</p><h3 id="transactionCount">—</h3><small>Based on recent history</small></article>
+            <article class="stat-card"><div class="stat-icon green">▤</div><p>Saved bank accounts</p><h3 id="bankCount">—</h3><small>Registered accounts</small></article>
+          </div>
+          <div class="section-head"><div><h3>Quick actions</h3><p class="muted">Choose what you want to do next.</p></div></div>
+          <div class="quick-grid">
+            <button class="quick-card" data-view="add-money"><span class="quick-icon green">＋</span><span><b>Add money</b><small>Top up your wallet</small></span><span class="arrow">↗</span></button>
+            <button class="quick-card" data-view="transfer"><span class="quick-icon purple">↗</span><span><b>Send money</b><small>Transfer to a user</small></span><span class="arrow">↗</span></button>
+            <button class="quick-card" data-view="withdraw"><span class="quick-icon orange">↙</span><span><b>Withdraw</b><small>Send funds to your bank</small></span><span class="arrow">↗</span></button>
+          </div>
+          <div class="section-head"><div><h3>Recent transactions</h3><p class="muted">Your latest wallet activity.</p></div><button class="text-button" data-view="transactions">View all →</button></div>
+          <div class="table-card"><div id="recentTransactions" class="table-wrap"><div class="empty-state">Sign in and refresh to load your recent transactions.</div></div></div>
+        </section>
+
+        <section class="view" id="view-transfer">
+          <div class="content-grid"><div class="form-card"><span class="eyebrow">WALLET TO WALLET</span><h2>Send money</h2><p class="muted">Transfer money to another KaasuPay user by their registered email.</p>
+            <form id="transferForm" class="form-stack">
+              <label>Recipient email<input name="to" type="email" required placeholder="recipient@example.com"></label>
+              <label>Amount (₹)<div class="input-prefix"><span>₹</span><input name="amount" type="number" min="1" step="1" required placeholder="0.00"></div><small>Enter amount in rupees. The API receives paise.</small></label>
+              <label>Note <span class="optional">Optional</span><input name="note" maxlength="50" placeholder="What's it for?"></label>
+              <button class="btn primary full" type="submit">Review & send <span>→</span></button>
+            </form>
+          </div><div class="info-card"><div class="info-icon purple">↗</div><h3>Before you send</h3><ul><li>Double-check the recipient email.</li><li>Make sure you have enough wallet balance.</li><li>Never share your password or login token.</li></ul><div class="info-note">Transfers may be irreversible. Verify recipient details before confirming.</div></div></div>
+        </section>
+
+        <section class="view" id="view-add-money">
+          <div class="content-grid"><div class="form-card"><span class="eyebrow">WALLET TOP-UP</span><h2>Add money</h2><p class="muted">Add funds to your wallet using the payment gateway configured in your backend.</p>
+            <form id="addMoneyForm" class="form-stack">
+              <label>Amount (₹)<div class="input-prefix"><span>₹</span><input name="amount" type="number" min="1" step="1" required placeholder="500"></div><small>Use your backend's supported minimum and maximum amount.</small></label>
+              <div class="amount-chips"><button type="button" data-amount="100">₹100</button><button type="button" data-amount="500">₹500</button><button type="button" data-amount="1000">₹1,000</button><button type="button" data-amount="2000">₹2,000</button></div>
+              <button class="btn primary full" type="submit">Continue to payment <span>→</span></button>
+            </form><p class="small-note">Payment completion depends on the payment-order and verification endpoints configured in your backend.</p>
+          </div><div class="info-card"><div class="info-icon green">＋</div><h3>Secure top-ups</h3><ul><li>Use only the official payment checkout.</li><li>Never share card PIN, UPI PIN, or OTP.</li><li>Check your wallet balance after payment.</li></ul><div class="info-note">This interface does not collect or store your card or UPI credentials.</div></div></div>
+        </section>
+
+        <section class="view" id="view-bank">
+          <div class="section-head"><div><h2>Bank accounts</h2><p class="muted">Manage the bank account you use for withdrawals.</p></div></div>
+          <div class="content-grid bank-layout"><div class="form-card"><h3>Add a bank account</h3><form id="bankForm" class="form-stack">
+            <label>Account holder name<input name="holderName" required placeholder="Name as per bank records"></label>
+            <label>Account number<input name="accountNumber" inputmode="numeric" required minlength="9" maxlength="18" placeholder="Enter account number"></label>
+            <label>IFSC code<input name="ifsc" required maxlength="11" placeholder="e.g. SBIN0001234" autocapitalize="characters"></label>
+            <button class="btn primary full" type="submit">Save bank account <span>→</span></button>
+          </form></div><div><h3 class="subheading">Saved accounts</h3><div id="bankAccounts" class="stack-list"><div class="empty-state">No bank accounts loaded yet.</div></div></div></div>
+        </section>
+
+        <section class="view" id="view-withdraw">
+          <div class="content-grid"><div class="form-card"><span class="eyebrow">BANK PAYOUT</span><h2>Withdraw money</h2><p class="muted">Request a payout from your wallet to a saved bank account.</p>
+            <form id="withdrawForm" class="form-stack">
+              <label>Bank account<select name="bankAccountId" id="withdrawBankSelect" required><option value="">Load a saved bank account first</option></select></label>
+              <label>Amount (₹)<div class="input-prefix"><span>₹</span><input name="amount" type="number" min="100" step="1" required placeholder="100"></div><small>Amount limits are enforced by your backend.</small></label>
+              <button class="btn primary full" type="submit">Request withdrawal <span>→</span></button>
+            </form>
+          </div><div class="info-card"><div class="info-icon orange">↙</div><h3>Withdrawal status</h3><p class="muted">Payouts may take time to process. A pending request is not the same as a completed bank transfer.</p><div class="status-examples"><span class="badge pending">PENDING</span><span class="badge success">SUCCESS</span><span class="badge review">NEEDS REVIEW</span><span class="badge reversed">REVERSED</span></div></div></div>
+          <div class="section-head"><div><h3>Withdrawal history</h3><p class="muted">Recent withdrawal requests and their status.</p></div><button class="btn secondary small-btn" id="loadWithdrawalsBtn">↻ Refresh</button></div><div class="table-card"><div id="withdrawalsTable" class="table-wrap"><div class="empty-state">No withdrawal history loaded.</div></div></div>
+        </section>
+
+        <section class="view" id="view-transactions">
+          <div class="section-head"><div><h2>Transactions</h2><p class="muted">A record of your wallet activity.</p></div><button class="btn secondary small-btn" id="loadTransactionsBtn">↻ Refresh</button></div>
+          <div class="table-card"><div id="allTransactions" class="table-wrap"><div class="empty-state">Load your transactions to see activity.</div></div></div>
+        </section>
+
+        <section class="view" id="view-admin">
+          <div class="content-grid"><div class="form-card"><span class="eyebrow">STAFF ONLY</span><h2>Admin tools</h2><p class="muted">Use your server-side admin key only in a trusted development environment. Do not deploy a browser-based admin key publicly.</p>
+            <form id="adminForm" class="form-stack">
+              <label>Admin key<input name="adminKey" type="password" required autocomplete="off" placeholder="Enter ADMIN_KEY"></label>
+              <label>Withdrawal status<select name="status"><option>NEEDS_REVIEW</option><option>PENDING</option><option>PROCESSING</option><option>SUCCESS</option><option>REVERSED</option></select></label>
+              <button class="btn primary full" type="submit">Load admin withdrawals <span>→</span></button>
+            </form><div class="warning-note">⚠ For production, move admin operations behind a properly authenticated admin backend. Never hard-code the admin key in frontend source.</div>
+          </div><div class="info-card"><div class="info-icon purple">⚙</div><h3>Admin safety</h3><ul><li>Keep the admin key private.</li><li>Do not commit secrets to GitHub.</li><li>Use server-side role checks for production.</li></ul></div></div>
+          <div class="section-head"><div><h3>Admin withdrawal list</h3><p class="muted">Results from the staff-only endpoint.</p></div></div><div class="table-card"><div id="adminWithdrawalsTable" class="table-wrap"><div class="empty-state">Submit the admin form to load records.</div></div></div>
+        </section>
+      </div>
+
+      <footer class="footer"><span>© 2026 KaasuPay</span><span>Wallet dashboard · Development frontend</span></footer>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
