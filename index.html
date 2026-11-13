@@ -128,10 +128,54 @@
           <div class="section-head"><div><h3>Withdrawal history</h3><p class="muted">Recent withdrawal requests and their status.</p></div><button class="btn secondary small-btn" id="loadWithdrawalsBtn">↻ Refresh</button></div><div class="table-card"><div id="withdrawalsTable" class="table-wrap"><div class="empty-state">No withdrawal history loaded.</div></div></div>
         </section>
 
-        <section class="view" id="view-transactions">
-          <div class="section-head"><div><h2>Transactions</h2><p class="muted">A record of your wallet activity.</p></div><button class="btn secondary small-btn" id="loadTransactionsBtn">↻ Refresh</button></div>
-          <div class="table-card"><div id="allTransactions" class="table-wrap"><div class="empty-state">Load your transactions to see activity.</div></div></div>
-        </section>
+<section class="view" id="view-transactions">
+  <div class="section-head">
+    <div>
+      <h2>Transactions</h2>
+      <p class="muted">A record of your wallet activity.</p>
+    </div>
+    <button class="btn secondary small-btn" id="loadTransactionsBtn">
+      ↻ Refresh
+    </button>
+  </div>
+
+  <div class="form-grid" style="margin-bottom:16px;">
+  <select id="filterDirection">
+    <option value="">All Directions</option>
+    <option value="CREDIT">Credit</option>
+    <option value="DEBIT">Debit</option>
+  </select>
+
+  <select id="filterType">
+    <option value="">All Types</option>
+    <option value="TRANSFER">Transfer</option>
+    <option value="DEPOSIT">Deposit</option>
+    <option value="TOPUP">Top-up</option>
+    <option value="WITHDRAWAL">Withdrawal</option>
+    <option value="REVERSAL">Reversal</option>
+  </select>
+
+  <input type="date" id="filterFrom">
+  <input type="date" id="filterTo">
+
+  <button class="btn secondary" id="applyFiltersBtn">Apply Filters</button>
+  <button class="btn secondary" id="downloadStatementBtn">
+  Download Monthly Statement (CSV)
+</button>
+</div>
+
+  <div class="table-card">
+    <div id="allTransactions" class="table-wrap">
+      <div class="empty-state">Load your transactions to see activity.</div>
+    </div>
+  </div>
+
+  <div style="text-align:center; margin-top:16px;">
+    <button class="btn secondary" id="loadMoreTransactionsBtn">
+      Load More
+    </button>
+  </div>
+</section>
 
         <section class="view" id="view-admin">
           <div class="content-grid"><div class="form-card"><span class="eyebrow">STAFF ONLY</span><h2>Admin tools</h2><p class="muted">Use your server-side admin key only in a trusted development environment. Do not deploy a browser-based admin key publicly.</p>

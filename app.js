@@ -18,7 +18,14 @@ const API_PATHS = {
   adminWithdrawals: "/wallet/admin/withdrawals"
 };
 
-const state = { token: localStorage.getItem("kaasupay_token") || "", user: null, transactions: [], bankAccounts: [], withdrawals: [] };
+const state = {
+  token: localStorage.getItem("kaasupay_token") || "",
+  user: null,
+  transactions: [],
+  nextCursor: null,
+  bankAccounts: [],
+  withdrawals: []
+};
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
@@ -121,17 +128,126 @@ function renderTransactions(items, targetSelector) {
 }
 async function loadTransactions() {
   try {
-    const data = await api(API_PATHS.transactions);
+    const data = await api(`${API_PATHS.transactions}?limit=20`);
+
     state.transactions = getArray(data, ["transactions", "items", "data"]);
+    state.nextCursor = data.nextCursor || null;
+
     renderTransactions(state.transactions, "#allTransactions");
     renderTransactions(state.transactions.slice(0, 5), "#recentTransactions");
+
     $("#transactionCount").textContent = state.transactions.length;
+
     setConnection(true);
   } catch (error) {
-    $("#allTransactions").innerHTML = `<div class="empty-state">${escapeHtml(error.message)}<br><br>Check API_PATHS.transactions in app.js.</div>`;
-    $("#recentTransactions").innerHTML = `<div class="empty-state">Could not load transactions.</div>`;
+    $("#allTransactions").innerHTML =
+      `<div class="empty-state">${escapeHtml(error.message)}</div>`;
+
+    $("#recentTransactions").innerHTML =
+      `<div class="empty-state">Could not load transactions.</div>`;
+
     $("#transactionCount").textContent = "—";
     setConnection(false);
+  }
+}
+
+async function loadMoreTransactions() {
+  if (!state.nextCursor) return;
+
+  try {
+    const params = new URLSearchParams({
+      limit: "20",
+      cursor: state.nextCursor
+    });
+
+    const direction = $("#filterDirection").value;
+    const type = $("#filterType").value;
+    const from = $("#filterFrom").value;
+    const to = $("#filterTo").value;
+
+    if (direction) params.set("direction", direction);
+    if (type) params.set("type", type);
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+
+    const data = await api(
+      `${API_PATHS.transactions}?${params.toString()}`
+    );
+
+    const newEntries = getArray(data, ["transactions", "items", "data"]);
+
+    state.transactions.push(...newEntries);
+    state.nextCursor = data.nextCursor || null;
+
+    renderTransactions(state.transactions, "#allTransactions");
+    $("#transactionCount").textContent = state.transactions.length;
+
+    $("#loadMoreTransactionsBtn").disabled = !state.nextCursor;
+
+  } catch (error) {
+    showNotice(error.message, "error");
+  }
+}
+async function applyTransactionFilters() {
+  try {
+    const params = new URLSearchParams({ limit: "20" });
+
+    const direction = $("#filterDirection").value;
+    const type = $("#filterType").value;
+    const from = $("#filterFrom").value;
+    const to = $("#filterTo").value;
+
+    if (direction) params.set("direction", direction);
+    if (type) params.set("type", type);
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+
+    const data = await api(
+      `${API_PATHS.transactions}?${params.toString()}`
+    );
+
+    state.transactions = getArray(data, ["transactions", "items", "data"]);
+    state.nextCursor = data.nextCursor || null;
+
+    renderTransactions(state.transactions, "#allTransactions");
+    $("#transactionCount").textContent = state.transactions.length;
+
+  } catch (error) {
+    showNotice(error.message, "error");
+  }
+}
+async function downloadMonthlyStatement() {
+  try {
+    const now = new Date();
+    const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+    const response = await fetch(
+      `${API_BASE}/wallet/statement/csv?month=${month}`,
+      {
+        headers: {
+          Authorization: `Bearer ${state.token}`
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || "Download failed");
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `kaasupay-statement-${month}.csv`;
+    link.click();
+
+    URL.revokeObjectURL(url);
+    showNotice("Statement downloaded successfully.", "success");
+
+  } catch (error) {
+    showNotice(error.message, "error");
   }
 }
 async function loadBalance() {
@@ -203,8 +319,11 @@ $$("[data-view]").forEach(button => button.addEventListener("click", () => {
   showView(view);
 }));
 $("#logoutBtn").addEventListener("click", logout);
+$("#applyFiltersBtn").addEventListener("click", applyTransactionFilters);
 $("#refreshBtn").addEventListener("click", refreshDashboard);
 $("#loadTransactionsBtn").addEventListener("click", loadTransactions);
+$("#loadMoreTransactionsBtn").addEventListener("click", loadMoreTransactions);
+$("#downloadStatementBtn").addEventListener("click", downloadMonthlyStatement);
 $("#loadWithdrawalsBtn").addEventListener("click", loadWithdrawals);
 $$(".amount-chips button").forEach(button => button.addEventListener("click", () => { $("#addMoneyForm [name=amount]").value = button.dataset.amount; }));
 
