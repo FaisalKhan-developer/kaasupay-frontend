@@ -22,6 +22,7 @@
         <button class="nav-item" data-view="bank"><span>▤</span> Bank accounts</button>
         <button class="nav-item" data-view="withdraw"><span>↙</span> Withdraw</button>
         <button class="nav-item" data-view="transactions"><span>⇄</span> Transactions</button>
+        <button class="nav-item" data-view="autopay"><span>↻</span> AutoPay</button>
       </nav>
       <div class="sidebar-bottom">
         <div class="secure-card"><span class="secure-icon">✓</span><div><b>Your money, your control</b><small>Keep your account details safe.</small></div></div>
@@ -174,6 +175,85 @@
     <button class="btn secondary" id="loadMoreTransactionsBtn">
       Load More
     </button>
+  </div>
+</section>
+
+<section class="view" id="view-autopay">
+  <div class="section-head">
+    <div>
+      <h2>AutoPay</h2>
+      <p class="muted">Manage your scheduled monthly wallet payments.</p>
+    </div>
+    <button class="btn secondary small-btn" id="loadAutopayBtn" type="button">↻ Refresh</button>
+  </div>
+
+  <div class="content-grid">
+    <div class="form-card">
+      <h3>Create AutoPay</h3>
+      <p class="muted">Set up a recurring monthly payment.</p>
+      <form id="autopayForm" class="form-stack">
+        <label>Recipient User ID
+          <input name="to" type="text" required maxlength="24"
+            minlength="24" placeholder="24-character MongoDB User ID">
+        </label>
+        <label>Monthly amount (₹)
+          <input name="amount" type="number" required min="1" max="5000" step="0.01">
+        </label>
+        <label>Payment day
+          <select name="dayOfMonth" required>
+            <option value="">Select day (1–28)</option>
+            <option value="1">1st</option>
+            <option value="5">5th</option>
+            <option value="10">10th</option>
+            <option value="15">15th</option>
+            <option value="20">20th</option>
+            <option value="25">25th</option>
+            <option value="28">28th</option>
+          </select>
+        </label>
+        <label>Payment PIN
+          <input name="pin" type="password" required
+            inputmode="numeric" pattern="[0-9]{4}|[0-9]{6}"
+            minlength="4" maxlength="6" placeholder="Enter your wallet PIN">
+        </label>
+        <button class="btn primary full" type="submit">Create AutoPay →</button>
+      </form>
+    </div>
+
+    <div class="info-card">
+      <div class="info-icon purple">↻</div>
+      <h3>AutoPay safety</h3>
+      <ul>
+        <li>Maximum ₹5,000 per monthly payment.</li>
+        <li>Maximum 5 active or paused mandates.</li>
+        <li>Three consecutive failures automatically pause a mandate.</li>
+        <li>Only create payments for recipients you trust.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div>
+      <h3>Your AutoPay mandates</h3>
+      <p class="muted">View and manage your recurring payments.</p>
+    </div>
+  </div>
+  <div class="table-card">
+    <div id="autopayList" class="table-wrap">
+      <div class="empty-state">Your AutoPay mandates will appear here.</div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div>
+      <h3>Payment history</h3>
+      <p class="muted">Select a mandate to view its payment runs.</p>
+    </div>
+  </div>
+  <div class="table-card">
+    <div id="autopayRuns" class="table-wrap">
+      <div class="empty-state">Select a mandate to view payment history.</div>
+    </div>
   </div>
 </section>
 

@@ -10,6 +10,7 @@ const API_PATHS = {
   transfer: "/user/transfer",
   balance: "/wallet/balance",
   transactions: "/wallet/transactions",
+  autopay: "/autopay",
   addMoneyOrder: "/wallet/add-money/order",
   addMoneyVerify: "/wallet/add-money/verify",
   bankAccounts: "/wallet/bank-accounts",
@@ -113,6 +114,8 @@ function showView(name) {
   if (name === "bank") loadBankAccounts();
   if (name === "transactions") loadTransactions();
   if (name === "withdraw") { loadBankAccounts(); loadWithdrawals(); }
+  if(name==="autopay") loadAutopay().catch(error => showNotice(error.message, "error"));
+
 }
 function renderTransactions(items, targetSelector) {
   const target = $(targetSelector);
@@ -296,6 +299,102 @@ function renderWithdrawalTable(items, selector) {
   if (!items.length) { target.innerHTML = '<div class="empty-state">No withdrawal records found.</div>'; return; }
   target.innerHTML = `<table class="data-table"><thead><tr><th>Reference</th><th>Amount</th><th>Status</th><th>Created</th><th>Details</th></tr></thead><tbody>${items.map(item => `<tr><td><b>${escapeHtml(item.reference || item._id)}</b></td><td>${money(item.amount)}</td><td>${prettyStatus(item.status)}</td><td>${escapeHtml(item.createdAt ? new Date(item.createdAt).toLocaleString() : "—")}</td><td>${escapeHtml(item.failureReason || item.bankRef || "—")}</td></tr>`).join("")}</tbody></table>`;
 }
+function renderAutopayList(items) {
+  const target = $("#autopayList");
+
+  if (!items.length) {
+    target.innerHTML = '<div class="empty-state">No AutoPay mandates found. Create one above.</div>';
+    return;
+  }
+
+  target.innerHTML = `<table class="data-table">
+    <thead><tr>
+      <th>Recipient</th><th>Amount</th><th>Payment day</th>
+      <th>Next payment</th><th>Status</th><th>Actions</th>
+    </tr></thead>
+    <tbody>
+      ${items.map(item => {
+        const id = item._id || item.id;
+        const recipient = item.payeeId?.username || item.payee?.username || "Wallet recipient";
+        const status = item.status || "UNKNOWN";
+
+        return `<tr>
+          <td>${escapeHtml(recipient)}</td>
+          <td>${money(item.amount)}</td>
+          <td>${escapeHtml(String(item.dayOfMonth))}</td>
+          <td>${escapeHtml(item.nextRunDay || "—")}</td>
+          <td>${escapeHtml(status)}${item.failedCount ? ` (${item.failedCount} failures)` : ""}</td>
+          <td>
+            <button class="btn secondary small-btn" data-autopay-action="runs" data-id="${escapeHtml(id)}">History</button>
+            ${status === "ACTIVE"
+              ? `<button class="btn secondary small-btn" data-autopay-action="pause" data-id="${escapeHtml(id)}">Pause</button>`
+              : ""}
+            ${status === "PAUSED"
+              ? `<button class="btn secondary small-btn" data-autopay-action="resume" data-id="${escapeHtml(id)}">Resume</button>`
+              : ""}
+            ${status !== "CANCELLED"
+              ? `<button class="btn secondary small-btn" data-autopay-action="cancel" data-id="${escapeHtml(id)}">Cancel</button>`
+              : ""}
+          </td>
+        </tr>`;
+      }).join("")}
+    </tbody>
+  </table>`;
+}
+
+function renderAutopayRuns(items) {
+  const target = $("#autopayRuns");
+
+  if (!items.length) {
+    target.innerHTML = '<div class="empty-state">No payment history found for this mandate.</div>';
+    return;
+  }
+
+  target.innerHTML = `<table class="data-table">
+    <thead><tr>
+      <th>Due date</th><th>Amount</th><th>Status</th><th>Details</th>
+    </tr></thead>
+    <tbody>
+      ${items.map(run => `<tr>
+        <td>${escapeHtml(run.dueDay || "—")}</td>
+        <td>${money(run.amount)}</td>
+        <td>${escapeHtml(run.status || "—")}</td>
+        <td>${escapeHtml(run.reason || run.transactionId || "—")}</td>
+      </tr>`).join("")}
+    </tbody>
+  </table>`;
+}
+
+async function loadAutopay() {
+  const data = await api(API_PATHS.autopay);
+  const items = getArray(data, ["mandates", "items", "data"]);
+  renderAutopayList(items);
+}
+
+async function loadAutopayRuns(id) {
+  const data = await api(`${API_PATHS.autopay}/${encodeURIComponent(id)}/runs`);
+  const items = getArray(data, ["runs", "items", "data"]);
+  renderAutopayRuns(items);
+}
+
+async function handleAutopayAction(action, id) {
+  if (action === "cancel" &&
+      !confirm("Are you sure you want to cancel this AutoPay mandate?")) {
+    return;
+  }
+
+  if (action === "runs") {
+    await loadAutopayRuns(id);
+    return;
+  }
+
+  await api(`${API_PATHS.autopay}/${encodeURIComponent(id)}/${action}`, {
+    method: "POST"
+  });
+
+  showNotice(`AutoPay mandate ${action} successful.`, "success");
+  await loadAutopay();
+}
 async function refreshDashboard() {
   await Promise.all([loadBalance(), loadTransactions(), loadBankAccounts()]);
 }
@@ -325,8 +424,52 @@ $("#loadTransactionsBtn").addEventListener("click", loadTransactions);
 $("#loadMoreTransactionsBtn").addEventListener("click", loadMoreTransactions);
 $("#downloadStatementBtn").addEventListener("click", downloadMonthlyStatement);
 $("#loadWithdrawalsBtn").addEventListener("click", loadWithdrawals);
+$("#loadAutopayBtn").addEventListener("click", () => {
+  loadAutopay().catch(error => showNotice(error.message, "error"));
+});
+
+$("#autopayList").addEventListener("click", async event => {
+  const button = event.target.closest("[data-autopay-action]");
+  if (!button) return;
+
+  button.disabled = true;
+  try {
+    await handleAutopayAction(button.dataset.autopayAction, button.dataset.id);
+  } catch (error) {
+    showNotice(error.message, "error");
+  } finally {
+    button.disabled = false;
+  }
+});
 $$(".amount-chips button").forEach(button => button.addEventListener("click", () => { $("#addMoneyForm [name=amount]").value = button.dataset.amount; }));
 
+onForm($("#autopayForm"), async values => {
+  const amount = Number(values.amount);
+
+  if (!Number.isFinite(amount) || amount < 1 || amount > 5000) {
+    throw new Error("AutoPay amount must be between ₹1 and ₹5,000.");
+  }
+
+  if (!/^[a-fA-F0-9]{24}$/.test(values.to.trim())) {
+    throw new Error("Enter a valid 24-character recipient User ID.");
+  }
+
+  const body = {
+    to: values.to.trim(),
+    amount: rupeesToPaise(amount),
+    dayOfMonth: Number(values.dayOfMonth),
+    pin: values.pin.trim()
+  };
+
+  const data = await api(API_PATHS.autopay, {
+    method: "POST",
+    body: JSON.stringify(body)
+  });
+
+  $("#autopayForm").reset();
+  showNotice(data.message || "AutoPay mandate created successfully.", "success");
+  await loadAutopay();
+});
 onForm($("#loginForm"), async values => {
   const data = await api(API_PATHS.login, { method: "POST", body: JSON.stringify(values) });
   const token = data.token || data.accessToken || data.jwt;
